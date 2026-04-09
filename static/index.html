@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Resume Screener</title>
+
+    <!-- Google Fonts: Outfit for headings, JetBrains Mono for code-like labels -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ============================================================
+       DESIGN TOKENS — change colors/fonts here, everything updates
+       ============================================================ */
+      :root {
+        --bg: #f0f4ff; /* page background */
+        --white: #ffffff; /* card background */
+        --border: #dde3f5; /* subtle borders */
+        --primary: #4f46e5; /* indigo — main brand color */
+        --primary-lt: #eef2ff; /* light tint of primary */
+        --text: #1e1b4b; /* dark headings */
+        --body: #4b5563; /* paragraph text */
+        --muted: #9ca3af; /* placeholder / labels */
+        --green: #059669; /* Match verdict */
+        --yellow: #d97706; /* Potential verdict */
+        --red: #dc2626; /* No Match verdict */
+        --radius: 14px; /* card corner rounding */
+        --shadow: 0 4px 24px rgba(79, 70, 229, 0.1);
+      }
+
+      /* ============================================================
+       RESET & BASE
+       ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        /* subtle dot-grid background — just a visual touch */
+        background-image: radial-gradient(circle, #c7d2fe 1px, transparent 1px);
+        background-size: 28px 28px;
+      }
+
+      /* ============================================================
+       LAYOUT — single centered column
+       ============================================================ */
+      .page {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 48px 20px 80px;
+      }
+
+      /* ============================================================
+       HEADER
+       ============================================================ */
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: slideDown 0.5s ease both;
+      }
+
+      .header .icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        display: block;
+      }
+
+      .header h1 {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--text);
+        letter-spacing: -0.03em;
+      }
+
+      .header h1 span {
+        color: var(--primary);
+      }
+
+      .header p {
+        margin-top: 10px;
+        font-size: 15px;
+        color: var(--body);
+        line-height: 1.6;
+      }
+
+      /* ============================================================
+       CARD — used for every section box
+       ============================================================ */
+      .card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+
+      /* ============================================================
+       SECTION LABEL — small uppercase label above each input
+       ============================================================ */
+      .label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* ============================================================
+       STEP INDICATOR — shows user which step they're on
+       ============================================================ */
+      .steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        margin-bottom: 28px;
+        animation: slideDown 0.5s 0.1s ease both;
+        opacity: 0;
+        animation-fill-mode: both;
+      }
+
+      .step-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted);
+        transition: color 0.3s;
+      }
+
+      .step-item.active {
+        color: var(--primary);
+      }
+      .step-item.done {
+        color: var(--green);
+      }
+
+      .step-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        transition: all 0.3s;
+        flex-shrink: 0;
+      }
+
+      .step-item.active .step-num {
+        background: var(--primary);
+        color: white;
+      }
+      .step-item.done .step-num {
+        background: var(--green);
+        color: white;
+      }
+
+      .step-line {
+        width: 40px;
+        height: 2px;
+        background: var(--border);
+        margin: 0 4px;
+        transition: background 0.3s;
+      }
+      .step-line.done {
+        background: var(--green);
+      }
+
+      /* ============================================================
+       FILE UPLOAD AREA
+       ============================================================ */
+      .upload-area {
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        padding: 36px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        background: var(--primary-lt);
+      }
+
+      .upload-area:hover,
+      .upload-area.drag-over {
+        border-color: var(--primary);
+        background: #e0e7ff;
+      }
+
+      .upload-area .up-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      .upload-area .up-text {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .upload-area .up-sub {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      /* Hide the real file input — we style our own drop zone */
+      #fileInput {
+        display: none;
+      }
+
+      .file-chosen {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-top: 14px;
+        padding: 10px 14px;
+        background: #d1fae5;
+        border: 1px solid #6ee7b7;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--green);
+      }
+
+      /* ============================================================
+       JOB DESCRIPTION TEXTAREA
+       ============================================================ */
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: "Outfit", sans-serif;
+        font-size: 14px;
+        color: var(--text);
+        background: var(--bg);
+        resize: vertical;
+        min-height: 80px;
+        outline: none;
+        transition: border-color 0.2s;
+        line-height: 1.6;
+      }
+
+      textarea:focus {
+        border-color: var(--primary);
+      }
+
+      /* ============================================================
+       ANALYZE BUTTON
+       ============================================================ */
+      .btn-analyze {
+        width: 100%;
+        padding: 15px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-family: "Outfit", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-analyze:hover:not(:disabled) {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+      }
+
+      .btn-analyze:disabled {
+        background: var(--muted);
+        cursor: not-allowed;
+      }
+
+      /* ============================================================
+       HOW IT WORKS — beginner explainer
+       ============================================================ */
+      .how-it-works {
+        background: var(--primary-lt);
+        border: 1px solid #c7d2fe;
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        margin-bottom: 16px;
+        animation: slideDown 0.5s 0.2s ease both;
+        opacity: 0;
+        animation-fill-mode: both;
+      }
+
+      .how-it-works h3 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 12px;
+      }
+
+      .flow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .flow-step {
+        background: white;
+        border: 1px solid #c7d2fe;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text);
+        white-space: nowrap;
+      }
+
+      .flow-arrow {
+        color: var(--primary);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      /* ============================================================
+       LOADING STATE
+       ============================================================ */
+      #loadingSection {
+        display: none;
+      }
+
+      .spinner {
+        width: 52px;
+        height: 52px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        animation: spin 0.9s linear infinite;
+      }
+
+      .loading-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      .loading-sub {
+        font-size: 14px;
+        color: var(--body);
+        margin-bottom: 24px;
+        text-align: center;
+      }
+
+      .ai-steps {
+        list-style: none;
+        text-align: left;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      .ai-steps li {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: color 0.4s;
+      }
+
+      .ai-steps li:last-child {
+        border-bottom: none;
+      }
+      .ai-steps li.active {
+        color: var(--primary);
+        font-weight: 600;
+      }
+      .ai-steps li.done {
+        color: var(--green);
+      }
+
+      .ai-steps li .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        flex-shrink: 0;
+        transition: background 0.4s;
+      }
+
+      .ai-steps li.active .dot {
+        background: var(--primary);
+        animation: pulse 1s infinite;
+      }
+      .ai-steps li.done .dot {
+        background: var(--green);
+      }
+
+      /* ============================================================
+       RESULTS SECTION
+       ============================================================ */
+      #resultsSection {
+        display: none;
+      }
+
+      .result-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .score-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+
+      .score-card .sc-label {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .score-card .sc-value {
+        font-size: 40px;
+        font-weight: 800;
+        color: var(--primary);
+        line-height: 1;
+      }
+
+      .score-card .sc-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .score-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        margin-top: 12px;
+        overflow: hidden;
+      }
+
+      .score-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), #818cf8);
+        border-radius: 3px;
+        width: 0%;
+        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .verdict-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .verdict-card .vc-label {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .verdict-pill {
+        padding: 8px 20px;
+        border-radius: 100px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .verdict-match {
+        background: #d1fae5;
+        color: var(--green);
+        border: 1px solid #6ee7b7;
+      }
+      .verdict-potential {
+        background: #fef3c7;
+        color: var(--yellow);
+        border: 1px solid #fcd34d;
+      }
+      .verdict-nomatch {
+        background: #fee2e2;
+        color: var(--red);
+        border: 1px solid #fca5a5;
+      }
+
+      .report-box {
+        background: #fafafa;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        font-size: 14px;
+        line-height: 1.8;
+        color: var(--body);
+        white-space: pre-wrap;
+        margin-top: 4px;
+      }
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+
+      .btn-reset {
+        width: 100%;
+        padding: 13px;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-family: "Outfit", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--body);
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 4px;
+      }
+
+      .btn-reset:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .error-box {
+        display: none;
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-size: 14px;
+        color: var(--red);
+        margin-bottom: 14px;
+      }
+
+      /* ============================================================
+       ANIMATIONS
+       ============================================================ */
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .card {
+        animation: fadeIn 0.5s ease both;
+      }
+      .card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .card:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .card:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- ============================================================
+       HEADER
+       ============================================================ -->
+      <div class="header">
+        <span class="icon">🤖</span>
+        <h1>AI <span>Resume Screener</span></h1>
+        <p>
+          Upload a resume PDF and let AI extract skills,<br />score the
+          candidate, and write an evaluation.
+        </p>
+      </div>
+
+      <!-- ============================================================
+       STEP INDICATOR  (1 → 2 → 3)
+       Updated via setStep() in JS
+       ============================================================ -->
+      <div class="steps" id="stepBar">
+        <div class="step-item active" id="stepItem1">
+          <div class="step-num">1</div>
+          Upload
+        </div>
+        <div class="step-line" id="stepLine1"></div>
+        <div class="step-item" id="stepItem2">
+          <div class="step-num">2</div>
+          Analyze
+        </div>
+        <div class="step-line" id="stepLine2"></div>
+        <div class="step-item" id="stepItem3">
+          <div class="step-num">3</div>
+          Results
+        </div>
+      </div>
+
+      <!-- ============================================================
+       HOW IT WORKS — explains the backend flow visually
+       Great for beginners to connect the UI to the code
+       ============================================================ -->
+      <div class="how-it-works">
+        <h3>⚡ How this works</h3>
+        <div class="flow">
+          <div class="flow-step">📄 Your PDF</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">pdfplumber extracts text</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Agent 1 parses skills</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Agent 2 scores fit</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">✅ Results</div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+       UPLOAD SECTION  (shown at step 1)
+       ============================================================ -->
+      <div id="uploadSection">
+        <div class="error-box" id="errorBox"></div>
+
+        <!-- CARD 1: Pick the PDF file -->
+        <div class="card">
+          <div class="label">📎 Step 1 — Upload Resume PDF</div>
+
+          <!--
+        Clicking this div triggers the hidden file input below.
+        Drag & drop is also handled here (see JS).
+      -->
+          <div class="upload-area" id="dropZone">
+            <span class="up-icon">☁️</span>
+            <div class="up-text">Click to choose a file</div>
+            <div class="up-sub">or drag & drop your PDF here</div>
+          </div>
+
+          <!-- The real file input, hidden — triggered by clicking the drop zone -->
+          <input type="file" id="fileInput" accept=".pdf" />
+
+          <!-- Appears after file is selected -->
+          <div class="file-chosen" id="fileChosen">
+            ✅ <span id="chosenName"></span>
+          </div>
+        </div>
+
+        <!-- CARD 2: Job Description -->
+        <div class="card">
+          <div class="label">📝 Step 2 — Job Description</div>
+          <textarea
+            id="jobDesc"
+            placeholder="Paste the job description here..."
+          >
+We are looking for a Python Developer with experience in FastAPI and AI Agents.</textarea
+          >
+        </div>
+
+        <!-- CARD 3: Run button + endpoint note -->
+        <div class="card">
+          <div class="label">🚀 Step 3 — Run AI Analysis</div>
+          <p
+            style="
+              font-size: 13px;
+              color: var(--body);
+              margin-bottom: 16px;
+              line-height: 1.6;
+            "
+          >
+            Clicking below sends your PDF to the
+            <code
+              style="
+                background: var(--primary-lt);
+                color: var(--primary);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+              "
+              >POST /uploadFile/</code
+            >
+            FastAPI endpoint. Two AI agents will read the resume and score the
+            candidate.
+          </p>
+
+          <!--
+        Disabled until a file is chosen.
+        Calls analyzeResume() on click.
+      -->
+          <button
+            class="btn-analyze"
+            id="analyzeBtn"
+            disabled
+            onclick="analyzeResume()"
+          >
+            Analyze Resume →
+          </button>
+        </div>
+      </div>
+      <!-- end #uploadSection -->
+
+      <!-- ============================================================
+       LOADING SECTION  (shown at step 2, while API is working)
+       ============================================================ -->
+      <div id="loadingSection">
+        <div class="card" style="padding: 48px 24px">
+          <div class="spinner"></div>
+          <div class="loading-title">AI is reading the resume...</div>
+          <div class="loading-sub">This usually takes 15–30 seconds</div>
+
+          <!-- These 4 steps light up one by one via JS timer -->
+          <ul class="ai-steps">
+            <li class="active" id="aiStep1">
+              <div class="dot"></div>
+              Extracting text from PDF
+            </li>
+            <li id="aiStep2">
+              <div class="dot"></div>
+              Agent 1: parsing skills & experience
+            </li>
+            <li id="aiStep3">
+              <div class="dot"></div>
+              Agent 2: scoring against job description
+            </li>
+            <li id="aiStep4">
+              <div class="dot"></div>
+              Writing final evaluation report
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ============================================================
+       RESULTS SECTION  (shown at step 3, after API responds)
+       ============================================================ -->
+      <div id="resultsSection">
+        <!-- Score + Verdict side by side -->
+        <div class="result-top">
+          <div class="score-card">
+            <div class="sc-label">Fit Score</div>
+            <div class="sc-value" id="scoreValue">—</div>
+            <div class="sc-sub">out of 100</div>
+            <div class="score-bar">
+              <div class="score-bar-fill" id="scoreBarFill"></div>
+            </div>
+          </div>
+
+          <div class="verdict-card">
+            <div class="vc-label">Verdict</div>
+            <div class="verdict-pill" id="verdictPill">—</div>
+          </div>
+        </div>
+
+        <!-- Full report text from the AI -->
+        <div class="card">
+          <div class="label">📋 Full AI Report</div>
+          <div class="report-box" id="reportText"></div>
+          <div class="file-info">
+            <span>📄</span>
+            <span id="resultFileName"></span>
+            <span>·</span>
+            <span id="resultCharCount"></span>
+          </div>
+        </div>
+
+        <button class="btn-reset" onclick="resetPage()">
+          ← Analyze Another Resume
+        </button>
+      </div>
+      <!-- end #resultsSection -->
+    </div>
+    <!-- end .page -->
+
+    <!--
+  ================================================================
+  JAVASCRIPT — only 3 responsibilities:
+    1. Handle file selection (click + drag & drop)
+    2. Send the file to FastAPI with fetch()
+    3. Display the results when the response arrives
+  ================================================================
+-->
+    <script>
+      // ── GLOBALS ───────────────────────────────────────────────────
+      let selectedFile = null; // the File object chosen by user
+      let stepTimer = null; // interval for loading step animation
+
+      // ── 1. FILE SELECTION ─────────────────────────────────────────
+
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+
+      // Click on drop zone → open file picker dialog
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      // File picker dialog result
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) pickFile(fileInput.files[0]);
+      });
+
+      // Drag over — highlight the zone
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+
+      // Drag leave — remove highlight
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("drag-over"),
+      );
+
+      // Drop — use the dragged file
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const f = e.dataTransfer.files[0];
+        if (f && f.type === "application/pdf") pickFile(f);
+      });
+
+      // Called whenever a valid PDF is selected
+      function pickFile(file) {
+        selectedFile = file;
+        document.getElementById("chosenName").textContent = file.name;
+        document.getElementById("fileChosen").style.display = "flex";
+        document.getElementById("analyzeBtn").disabled = false; // enable button
+      }
+
+      // ── 2. SEND TO FASTAPI ────────────────────────────────────────
+
+      async function analyzeResume() {
+        if (!selectedFile) return;
+
+        // Switch views
+        document.getElementById("uploadSection").style.display = "none";
+        document.getElementById("loadingSection").style.display = "block";
+        document.getElementById("errorBox").style.display = "none";
+        setStep(2);
+        animateLoadingSteps();
+
+        // Build FormData — this is what FastAPI's UploadFile receives
+        const formData = new FormData();
+        formData.append("file", selectedFile); // 'file' must match the FastAPI param name
+
+        try {
+          /*
+        fetch() sends an HTTP POST to /uploadFile/
+        No Content-Type header needed — browser sets multipart/form-data automatically
+        when body is FormData.
+      */
+          const response = await fetch("/uploadFile/", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json(); // parse the JSON our FastAPI returns
+
+          if (!response.ok) throw new Error(data.detail || "Server error");
+
+          showResults(data); // hand off to display function
+        } catch (err) {
+          showError(err.message || "Something went wrong. Please try again.");
+        }
+      }
+
+      // ── 3. DISPLAY RESULTS ────────────────────────────────────────
+
+      function showResults(data) {
+        clearInterval(stepTimer);
+
+        document.getElementById("loadingSection").style.display = "none";
+        document.getElementById("resultsSection").style.display = "block";
+        setStep(3);
+
+        // Pull values from the JSON response
+        const score = data.ai_evaluation?.fit_score ?? null;
+        const verdict = data.ai_evaluation?.verdict ?? "";
+        const report =
+          data.ai_evaluation?.full_report ?? JSON.stringify(data, null, 2);
+
+        // Score number
+        document.getElementById("scoreValue").textContent =
+          score !== null ? score : "N/A";
+
+        // Animate the score bar after a small delay
+        setTimeout(() => {
+          document.getElementById("scoreBarFill").style.width =
+            (score ?? 0) + "%";
+        }, 150);
+
+        // Verdict pill — color depends on value
+        const pill = document.getElementById("verdictPill");
+        pill.textContent = verdict;
+        pill.className = "verdict-pill";
+        if (verdict.includes("No Match")) pill.classList.add("verdict-nomatch");
+        else if (verdict.includes("Potential"))
+          pill.classList.add("verdict-potential");
+        else if (verdict.includes("Match")) pill.classList.add("verdict-match");
+
+        // Report text
+        document.getElementById("reportText").textContent = report;
+
+        // File metadata
+        document.getElementById("resultFileName").textContent =
+          data.file?.name ?? "";
+        document.getElementById("resultCharCount").textContent = data.file
+          ?.characters_extracted
+          ? data.file.characters_extracted.toLocaleString() + " chars extracted"
+          : "";
+      }
+
+      // ── HELPERS ───────────────────────────────────────────────────
+
+      // Show error and go back to upload screen
+      function showError(msg) {
+        clearInterval(stepTimer);
+        document.getElementById("loadingSection").style.display = "none";
+        document.getElementById("uploadSection").style.display = "block";
+        const box = document.getElementById("errorBox");
+        box.textContent = "⚠️ " + msg;
+        box.style.display = "block";
+        setStep(1);
+      }
+
+      // Reset everything back to the beginning
+      function resetPage() {
+        selectedFile = null;
+        fileInput.value = "";
+        document.getElementById("fileChosen").style.display = "none";
+        document.getElementById("analyzeBtn").disabled = true;
+        document.getElementById("resultsSection").style.display = "none";
+        document.getElementById("uploadSection").style.display = "block";
+        document.getElementById("errorBox").style.display = "none";
+        document.getElementById("scoreBarFill").style.width = "0%";
+        setStep(1);
+      }
+
+      // Update the 1 → 2 → 3 step bar at the top
+      function setStep(n) {
+        for (let i = 1; i <= 3; i++) {
+          const item = document.getElementById("stepItem" + i);
+          item.className =
+            "step-item" + (i < n ? " done" : i === n ? " active" : "");
+          if (i < 3) {
+            document.getElementById("stepLine" + i).className =
+              "step-line" + (i < n ? " done" : "");
+          }
+        }
+      }
+
+      // Light up loading steps one by one every 5 seconds
+      function animateLoadingSteps() {
+        const ids = ["aiStep1", "aiStep2", "aiStep3", "aiStep4"];
+        let i = 0;
+        ids.forEach((id) => (document.getElementById(id).className = ""));
+        document.getElementById(ids[0]).className = "active";
+
+        stepTimer = setInterval(() => {
+          if (i < ids.length - 1) {
+            document.getElementById(ids[i]).className = "done";
+            i++;
+            document.getElementById(ids[i]).className = "active";
+          }
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>

@@ -3,6 +3,8 @@ import pdfplumber
 from crewai import Crew, Process
 from tasks import extraction_task, profiling_task
 from agents import Data_Scout, manager
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
@@ -44,3 +46,9 @@ async def upload_and_read(file: UploadFile = File(...)):
         "length": len(content),
         "ai_analysis": str(result)
     }
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+async def index():
+    return FileResponse("static/index.html")

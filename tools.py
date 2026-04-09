@@ -7,7 +7,7 @@ os.environ['SERPER_API_KEY'] = os.getenv('SERPER_API_KEY')
 tool = SerperDevTool() #checks what the certification actually covers
 '''
 
-from dotenv import load_dotenv
+'''from dotenv import load_dotenv
 import os
 from crewai_tools import SerperDevTool
 
@@ -19,3 +19,4 @@ if not serper_key:
 
 os.environ['SERPER_API_KEY'] = serper_key
 tool = SerperDevTool()
+'''
